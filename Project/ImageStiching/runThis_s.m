@@ -36,6 +36,14 @@ avgXLim = mean(xlim, 2);
 centerIdx = floor((numel(tforms)+1)/2);
 centerImageIdx = idx(centerIdx);
 
+
+Tinv = invert(tforms(centerImageIdx));
+
+for i = 1:numel(tforms)
+    tforms(i).T = Tinv.T * tforms(i).T;
+end
+
+
 for i = 1:numel(tforms)
     [xlim(i,:), ylim(i,:)] = outputLimits(tforms(i), [1 imageSize(2)], [1 imageSize(1)]);
 end
