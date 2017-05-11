@@ -10,22 +10,25 @@
 % pan2 = image_stitch(im3, im4);
 % pan3 = image_stitch(pan1, pan2);
 
-im1 = imread('images/rso1.jpg', .25);
-im2 = imread('images/rso2.jpg', .25);
-im3 = imread('images/rso3.jpg', .25);
-im4 = imread('images/rso4.jpg', .25);
-im5 = imread('images/rso5.jpg', .25);
-im6 = imread('images/rso6.jpg', .25);
+im1 = imresize(imread('images/rso1.jpg'), .25);
+im2 = imresize(imread('images/rso2.jpg'), .25);
+im3 = imresize(imread('images/rso3.jpg'), .25);
+im4 = imresize(imread('images/rso4.jpg'), .25);
+im5 = imresize(imread('images/rso5.jpg'), .25);
+im6 = imresize(imread('images/rso6.jpg'), .25);
 
 % pan1 = image_stitch(im1, im2);
 % pan2 = image_stitch(im3, im4);
-tforms(3) = projective2d(eye(3));
+
+tforms(1) = projective2d(eye(3));
 T2 = get_tforms(im1, im2);
 tforms(2).T = T2.tdata.T * tforms(1).T;
 T3 = get_tforms(im1, im3);
 tforms(3).T = T3.tdata.T * tforms(2).T;
 T4 = get_tforms(im1, im4);
 tforms(4).T = T4.tdata.T * tforms(3).T;
+% T5 = get_tforms(im1, im5);
+% tforms(5).T = T5.tdata.T * tforms(4).T;
 
 imageSize = size(im1);
 
@@ -74,9 +77,9 @@ yLimits = [yMin yMax];
 panoramaView = imref2d([height width], xLimits, yLimits);
 
 % Create the panorama.
-for i = 1:3
+for i = 1:4
 
-    I = imread(strcat('images/rso', num2str(i), '.jpg'), .3);
+    I = imresize(imread(strcat('images/rso', num2str(i), '.jpg')), .25);
 
     % Transform I into the panorama.
     warpedImage = imwarp(I, tforms(i), 'OutputView', panoramaView);

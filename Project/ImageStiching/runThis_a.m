@@ -17,5 +17,5 @@ images{6} = im6;
 
 pan1 = image_stich_a(images);
 
-figure(1)
-imshow(pan1);
+% figure(1)
+% imshow(pan1);
