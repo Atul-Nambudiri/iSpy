@@ -10,15 +10,17 @@ function [panorama] = image_stich_a(images)
     
     for i = 2:length(images)
         T = getTForm(images{i}, images{i-1});
-        trans_matrices(i) = T;
+        trans_matrices(i) = trans_matrices(i-1).T * T.T;
     end
     
     XPos = zeros(length(images), 2);
+    
     [x, y] = size(images{i});
 
     for i = 1:length(images) 
-        [~, RB] = imwarp(images{i}, trans_matrices(i));
-        [xcoord, ycoord] = outputLimits(trans_matrices(i), [1 y], [1 x]);   
+%         [~, RB] = imwarp(images{i}, trans_matrices(i));
+        [xcoord, ycoord] = outputLimits(trans_matrices(i), [1 y], [1 x]);
+        XPos(i, :) = xcoord;   
     end
     
     [~, index] = sort(mean(XPos, 2));
@@ -38,13 +40,18 @@ function [panorama] = image_stich_a(images)
     
     yMax = 1;
     xMax = 1;
-    
+
     for i = 1:length(images) 
+%         [~, RB] = imwarp(images{i}, trans_matrices(i));
         [xcoord, ycoord] = outputLimits(trans_matrices(i), [1 y], [1 x]);
+%         xMin = min([xMin, RB.XIntrinsicLimits(1)]);
+%         yMin = min([yMin, RB.YIntrinsicLimits(1)]);
+%         xMax = max([xMax, RB.XIntrinsicLimits(2)]);
+%         yMax = max([yMax, RB.YIntrinsicLimits(2)]);
         xMin = min([xMin, xcoord(1)]);
-        yMin = min([yMin, ycoord(1)]);
-        xMax = max([xMax, xcoord(2)]);
-        yMax = max([yMax, ycoord(2)]);
+        yMin = min([yMin, xcoord(1)]);
+        xMax = max([xMax, xcoord(1)]);
+        yMax = max([yMax, RB.YIntrinsicLimits(2)]);
     end
     
     panorama = zeros([round(yMax - yMin) round(xMax - xMin) 3], 'like', images{1});
