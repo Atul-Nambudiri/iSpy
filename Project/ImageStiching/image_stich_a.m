@@ -13,64 +13,46 @@ function [ims] = image_stich_a(images)
         trans_matrices(i).T = trans_matrices(i-1).T * T.T;
     end
     
-    [x, y, ~] = size(images{1});  % all the images are the same size
-    
-    XPos = 
+    XPos = zeros(length(images), 2);
 
-    % Compute the output limits  for each transform
-    for i = 1:numel(trans_matrices)           
-        [xlim(i,:), ylim(i,:)] = outputLimits(trans_matrices(i), [1 y], [1 x]);    
+    for i = 1:length(images) 
+        [~,xcoord,ycoord] = imtransform(right_orig,trans_matrices(i));
+        XPos(i, :) = xcoord;   
     end
     
-    avgXLim = mean(xlim, 2);
+    [~, index] = sort(mean(XPos, 2));
+    center = floor((length(trans_matrices)+1)/2);
 
-    [~, idx] = sort(avgXLim);
+    center_idx = index(center);
 
-    centerIdx = floor((numel(trans_matrices)+1)/2);
-
-    centerImageIdx = idx(centerIdx);
-
-    %%
-    % Finally, apply the center image's inverse transform to all the others.
-
-    Tinv = invert(trans_matrices(centerImageIdx));
-
-    for i = 1:numel(trans_matrices)    
-        trans_matrices(i).T = Tinv.T * trans_matrices(i).T;
+    for i = 1:length(images)    
+        trans_matrices(i).T = inv(trans_matrices(center_idx).T) * trans_matrices(i).T;
     end
+    
+    xMin = 1;
+    yMin = 1;
+    
+    yMax = 1;
+    xMax = 1;
 
-    %% Step 3 - Initialize the Panorama
-    % Now, create an initial, empty, panorama into which all the images are
-    % mapped. 
-    % 
-    % Use the |outputLimits| method to compute the minimum and maximum output
-    % limits over all transformations. These values are used to automatically
-    % compute the size of the panorama.
-
-    for i = 1:numel(trans_matrices)           
-        [xlim(i,:), ylim(i,:)] = outputLimits(trans_matrices(i), [1 imageSize(2)], [1 imageSize(1)]);
+    for i = 1:length(images) 
+        [~,xcoord,ycoord] = imtransform(right_orig,trans_matrices(i));
+        xMin = min([xMin, xcoord(1)]);
+        yMin = min([yMin, ycoord(1)]);
+        xMax = max([xMax, xcoord(2)]);
+        yMax = max([yMax, ycoord(2)]);
     end
-
-    % Find the minimum and maximum output limits 
-    xMin = min([1; xlim(:)]);
-    xMax = max([imageSize(2); xlim(:)]);
-
-    yMin = min([1; ylim(:)]);
-    yMax = max([imageSize(1); ylim(:)]);
-
-    % Width and height of panorama.
-    width  = round(xMax - xMin);
-    height = round(yMax - yMin);
-
-    % Initialize the "empty" panorama.
-    panorama = zeros([height width 3], 'like', images{1});
+    
+    panX  = round(xMax - xMin);
+    panY = round(yMax - yMin);
 
     %% Step 4 - Create the Panorama
     % Use |imwarp| to map images into the panorama and use
     % |vision.AlphaBlender| to overlay the images together.
+    
+    panorama = zeros([panX panY 3], 'like', images{1});
 
-    blender = vision.AlphaBlender('Operation', 'Binary mask', ...
-        'MaskSource', 'Input port');  
+    blender = vision.AlphaBlender('Operation', 'Binary mask', 'MaskSource', 'Input port');  
 
     % Create a 2-D spatial reference object defining the size of the panorama.
     xLimits = [xMin xMax];
