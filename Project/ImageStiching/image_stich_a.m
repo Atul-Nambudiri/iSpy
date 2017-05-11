@@ -13,11 +13,13 @@ function [ims] = image_stich_a(images)
         trans_matrices(i).T = trans_matrices(i-1).T * T.T;
     end
     
-    imageSize = size(images{1});  % all the images are the same size
+    [x, y, ~] = size(images{1});  % all the images are the same size
+    
+    XPos = 
 
     % Compute the output limits  for each transform
     for i = 1:numel(trans_matrices)           
-        [xlim(i,:), ylim(i,:)] = outputLimits(trans_matrices(i), [1 imageSize(2)], [1 imageSize(1)]);    
+        [xlim(i,:), ylim(i,:)] = outputLimits(trans_matrices(i), [1 y], [1 x]);    
     end
     
     avgXLim = mean(xlim, 2);
