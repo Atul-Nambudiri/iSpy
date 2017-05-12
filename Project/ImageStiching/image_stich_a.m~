@@ -20,16 +20,19 @@ function [panorama] = image_stich_a(images)
         [XPos(i, :), ~] = outputLimits(trans_matrices(i), [1 y], [1 x]);    
     end
 
-    [~, ind] = sort(mean(XPos, 2));
+    [~, index] = sort(mean(XPos, 2));
     center = floor((length(trans_matrices)+1)/2);
-    center_idx = ind(center);
+
+    center_idx = index(center);
+
+    Tinv = invert(trans_matrices(center_idx));
 
     for i = 1:length(trans_matrices)    
-        trans_matrices(i).T = inv(trans_matrices(center_idx).T) * trans_matrices(i).T;
+        trans_matrices(i).T = Tinv.T * trans_matrices(i).T;
     end
 
     for i = 1:length(trans_matrices)           
-        [xPos(i,:), ~] = outputLimits(trans_matrices(i), [1 y], [1 x]);
+        [xPos(i,:), ~] = outputLimits(trans_matrices(i), [1 imageSize(2)], [1 imageSize(1)]);
     end
 
     xMin = 1;
@@ -46,13 +49,26 @@ function [panorama] = image_stich_a(images)
         yMax = max([yMax, ycoord(2)]);
     end
     
-    blender = vision.AlphaBlender('Operation', 'Binary mask', 'MaskSource', 'Input port');
     panorama = zeros([round(yMax - yMin) round(xMax - xMin) 3], 'like', images{1});
     pan_ref = imref2d([round(yMax - yMin) round(xMax - xMin)], [xMin xMax], [yMin yMax]);
     
+    [warpedImage, RA] = imwarp(images{1}, trans_matrices(1), 'OutputView', pan_ref);
+    [warpedImage, RB] = imwarp(images{2}, trans_matrices(2), 'OutputView', pan_ref);
+    
+    % Create the panorama.
     for t = 1:length(images);
-        [warpedImage, RA] = imwarp(images{t}, trans_matrices(t), 'OutputView', pan_ref);
-        panorama = step(blender, panorama, warpedImage, warpedImage(:,:,1));
+        [warpedImage, RA] = imwarp(images{t}, trans_matrices(t), 'OutputView', panoramaView);
+        [x, y, ~] = size(warpedImage);
+        for i = 1:x
+            for j = 1:y
+                px = i + round(RA.YWorldLimits(1));
+                py = j + round(RA.XWorldLimits(1));
+                panorama(px, py, :) = warpedImage(i, j, :);
+            end
+        end
+        % Overlay the warpedImage onto the panorama.
+%         panorama = imfuse(panorama, panoramaView, warpedImage, RA, 'blend');
+%         panorama = step(blender, panorama, warpedImage, warpedImage(:,:,1));
     end
     
 end
