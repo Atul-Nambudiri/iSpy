@@ -41,7 +41,7 @@ tt1 = [1 0 -ux1;
 t0 = ts0 * tt0;
 t1 = ts1 * tt1;
 
-T_ = calculateTransformation(nx0, ny0, nx1, ny1, 0.2, 0.2, 1000);
+T_ = calculateTransformation(nx0, ny0, nx1, ny1, 0.5, 0.2, 500);
 T_ = [T_; 0 0 1];
 
 T = inv(t1) * T_ * t0;
