@@ -14,15 +14,12 @@ function [panorama] = image_stich_a(images)
     end
     
     XPos = zeros(length(images), 2);
-    
-    [x, y] = size(images{i});
+    [x, y, z] = size(images{i});
 
-    for i = 1:length(images) 
-%         [~, RB] = imwarp(images{i}, trans_matrices(i));
-        [xcoord, ycoord] = outputLimits(trans_matrices(i), [1 y], [1 x]);
-        XPos(i, :) = xcoord;   
+    for i = 1:length(trans_matrices)           
+        [XPos(i, :), ~] = outputLimits(trans_matrices(i), [1 y], [1 x]);    
     end
-    
+
     [~, index] = sort(mean(XPos, 2));
     center = floor((length(trans_matrices)+1)/2);
 
@@ -34,43 +31,44 @@ function [panorama] = image_stich_a(images)
         trans_matrices(i).T = Tinv.T * trans_matrices(i).T;
     end
 
-    
+    for i = 1:length(trans_matrices)           
+        [xPos(i,:), ~] = outputLimits(trans_matrices(i), [1 imageSize(2)], [1 imageSize(1)]);
+    end
+
     xMin = 1;
     yMin = 1;
     
     yMax = 1;
     xMax = 1;
-
+    
     for i = 1:length(images) 
-%         [~, RB] = imwarp(images{i}, trans_matrices(i));
         [xcoord, ycoord] = outputLimits(trans_matrices(i), [1 y], [1 x]);
-%         xMin = min([xMin, RB.XIntrinsicLimits(1)]);
-%         yMin = min([yMin, RB.YIntrinsicLimits(1)]);
-%         xMax = max([xMax, RB.XIntrinsicLimits(2)]);
-%         yMax = max([yMax, RB.YIntrinsicLimits(2)]);
         xMin = min([xMin, xcoord(1)]);
-        yMin = min([yMin, xcoord(1)]);
-        xMax = max([xMax, xcoord(1)]);
-        yMax = max([yMax, RB.YIntrinsicLimits(2)]);
+        yMin = min([yMin, ycoord(1)]);
+        xMax = max([xMax, xcoord(2)]);
+        yMax = max([yMax, ycoord(2)]);
     end
     
     panorama = zeros([round(yMax - yMin) round(xMax - xMin) 3], 'like', images{1});
-
-    blender = vision.AlphaBlender('Operation', 'Binary mask', 'MaskSource', 'Input port');  
-
-    xLimits = [xMin xMax];
-    yLimits = [yMin yMax];
-    [p_rows, p_cols, ~] = size(panorama);
-    panoramaView = imref2d([p_rows p_cols], xLimits, yLimits);
-
-    for i = 1:length(images)
-        I = images{i};
-        curr_projection = trans_matrices(i);
-        warpedImage = imwarp(I, curr_projection, 'OutputView', panoramaView);
-        panorama = step(blender, panorama, warpedImage, warpedImage(:,:,1));
+    pan_ref = imref2d([round(yMax - yMin) round(xMax - xMin)], [xMin xMax], [yMin yMax]);
+    
+    [warpedImage, RA] = imwarp(images{1}, trans_matrices(1), 'OutputView', pan_ref);
+    [warpedImage, RB] = imwarp(images{2}, trans_matrices(2), 'OutputView', pan_ref);
+    
+    % Create the panorama.
+    for t = 1:length(images);
+        [warpedImage, RA] = imwarp(images{t}, trans_matrices(t), 'OutputView', panoramaView);
+        [x, y, ~] = size(warpedImage);
+        for i = 1:x
+            for j = 1:y
+                px = i + round(RA.YWorldLimits(1));
+                py = j + round(RA.XWorldLimits(1));
+                panorama(px, py, :) = warpedImage(i, j, :);
+            end
+        end
+        % Overlay the warpedImage onto the panorama.
+%         panorama = imfuse(panorama, panoramaView, warpedImage, RA, 'blend');
+%         panorama = step(blender, panorama, warpedImage, warpedImage(:,:,1));
     end
-
-    figure
-    imshow(panorama)
     
 end
